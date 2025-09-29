@@ -11,5 +11,7 @@ namespace Nop.Plugin.Payments.Elavon.Models.DTO;
 /// </summary>
 public class TransactionResponse
 {
+    [JsonProperty("id")] public string Id { get; set; }
+
     [JsonProperty("isAuthorized")] public bool IsAuthorized { get; set; }
 }

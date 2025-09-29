@@ -33,14 +33,14 @@ public class PaymentElavonPublicController : BasePublicController
     #region Methods
 
     [HttpPost]
-    public async Task<IActionResult> CreateOrder()
+    public async Task<IActionResult> CreateOrderAsync()
     {
         var paymentSession = await _apiIntegrationService.CreatePaymentSessionAsync();
 
         var orderPaymentInfo = await HttpContext.Session.GetAsync<ProcessPaymentRequest>(Globals.PaymentRequestSessionKey);
         orderPaymentInfo.CustomValues[Globals.PaymentSessionId] = paymentSession.SessionId;
 
-        await HttpContext.Session.SetAsync("OrderPaymentInfo", orderPaymentInfo);
+        await HttpContext.Session.SetAsync(Globals.PaymentRequestSessionKey, orderPaymentInfo);
 
         return Ok(paymentSession.SessionId);
     }

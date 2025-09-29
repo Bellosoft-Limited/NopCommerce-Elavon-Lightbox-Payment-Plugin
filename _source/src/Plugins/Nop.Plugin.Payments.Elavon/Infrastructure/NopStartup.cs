@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Nop.Core.Infrastructure;
+using Nop.Plugin.Payments.Elavon.Business.Services;
 using Nop.Plugin.Payments.Elavon.Business.Services.Api;
+using Nop.Services.Orders;
 
 namespace Nop.Plugin.Payments.Elavon.Infrastructure;
 
@@ -23,6 +25,7 @@ public class NopStartup : INopStartup
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IApiIntegrationService, ApiIntegrationService>();
+        services.AddScoped<IOrderProcessingService, CustomOrderProcessingService>();
     }
 
     /// <summary>
@@ -36,5 +39,5 @@ public class NopStartup : INopStartup
     /// <summary>
     /// Gets order of this startup configuration implementation
     /// </summary>
-    public int Order => 1;
+    public int Order => 9999;
 }

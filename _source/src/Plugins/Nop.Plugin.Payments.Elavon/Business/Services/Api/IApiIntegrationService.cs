@@ -10,7 +10,5 @@ public interface IApiIntegrationService
 {
     Task<PaymentSessionResponse> CreatePaymentSessionAsync();
 
-    Task<OrderResponse> GetElavonOrderBySessionIdAsync(string sessionId);
-
-    Task<bool> VerifyTransactionApprovalAsync(string sessionId);
+    Task<TransactionResponse> GetTransactionBySessionIdAsync(string sessionId);
 }

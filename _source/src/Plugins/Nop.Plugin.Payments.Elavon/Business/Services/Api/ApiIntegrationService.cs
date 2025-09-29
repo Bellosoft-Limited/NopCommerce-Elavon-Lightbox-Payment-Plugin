@@ -68,35 +68,20 @@ public class ApiIntegrationService : IApiIntegrationService
         return await PostAsync<PaymentSessionRequest, PaymentSessionResponse>(apiUrl, requestData);
     }
 
-    public async Task<OrderResponse> GetElavonOrderBySessionIdAsync(string sessionId)
+    /// <summary>
+    /// Get transaction from Elavon API
+    /// </summary>
+    public async Task<TransactionResponse> GetTransactionBySessionIdAsync(string sessionId)
     {
         var apiUrl = $"{_elavonPaymentSettings.ApiUrl.TrimEnd('/')}/payment-sessions/{sessionId}";
         var paymentSession = await GetAsync<PaymentSessionResponse>(apiUrl);
 
-        return await GetAsync<OrderResponse>(paymentSession.OrderHref);
-    }
-
-    /// <summary>
-    /// Verify transaction with Elavon API
-    /// </summary>
-    public async Task<bool> VerifyTransactionApprovalAsync(string sessionId)
-    {
-        try
+        if (string.IsNullOrEmpty(paymentSession.TransactionHref))
         {
-            var apiUrl = $"{_elavonPaymentSettings.ApiUrl.TrimEnd('/')}/payment-sessions/{sessionId}";
-            var paymentSession = await GetAsync<PaymentSessionResponse>(apiUrl);
-
-            if (string.IsNullOrEmpty(paymentSession.TransactionHref))
-                return false;
-
-            var transaction = await GetAsync<TransactionResponse>(paymentSession.TransactionHref);
-
-            return transaction.IsAuthorized;
+            return null;
         }
-        catch (Exception)
-        {
-            return false;
-        }
+
+        return await GetAsync<TransactionResponse>(paymentSession.TransactionHref);
     }
 
     #region Private Methods

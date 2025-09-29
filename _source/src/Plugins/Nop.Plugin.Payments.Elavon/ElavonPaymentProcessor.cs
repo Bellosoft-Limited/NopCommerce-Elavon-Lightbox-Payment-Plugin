@@ -58,15 +58,18 @@ public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod, IWidgetPlugin
     {
         var result = new ProcessPaymentResult();
 
-        if (!processPaymentRequest.CustomValues.TryGetValue(Globals.PaymentSessionId, out var sessionId) && sessionId != null)
+        if (!processPaymentRequest.CustomValues.TryGetValue(Globals.PaymentSessionId, out var sessionIdValue))
         {
-            var paymentVerified = await _apiIntegrationService.VerifyTransactionApprovalAsync(sessionId.ToString());
-            if (paymentVerified)
-            {
-                return result;
-            }
-
             result.AddError(await _localizationService.GetResourceAsync("Plugins.Payments.Elavon.PaymentFailed"));
+        }
+
+        if (!string.IsNullOrEmpty(sessionIdValue.ToString()))
+        {
+            var transaction = await _apiIntegrationService.GetTransactionBySessionIdAsync(sessionIdValue.ToString());
+            if (!transaction.IsAuthorized)
+            {
+                result.AddError(await _localizationService.GetResourceAsync("Plugins.Payments.Elavon.PaymentFailed"));
+            }
         }
 
         return result;
@@ -176,20 +179,9 @@ public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod, IWidgetPlugin
     /// </summary>
     /// <param name="form">The parsed form values</param>
     /// <returns>Payment info holder</returns>
-    public async Task<ProcessPaymentRequest> GetPaymentInfoAsync(IFormCollection form)
+    public Task<ProcessPaymentRequest> GetPaymentInfoAsync(IFormCollection form)
     {
-        var model = new ProcessPaymentRequest();
-
-        if (form.TryGetValue(Globals.PaymentSessionId, out var sessionId))
-        {
-            var orderIdKey = await _localizationService.GetResourceAsync("Plugins.Payments.Elavon.Order.Id");
-            var order = await _apiIntegrationService.GetElavonOrderBySessionIdAsync(sessionId.ToString());
-
-            model.CustomValues[orderIdKey] = order.OrderId;
-            model.CustomValues[Globals.PaymentSessionId] = sessionId.ToString();
-        }
-
-        return model;
+        return Task.FromResult(new ProcessPaymentRequest());
     }
 
     /// <summary>
@@ -264,9 +256,8 @@ public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod, IWidgetPlugin
             ["Plugins.Payments.Elavon.Fields.PublicKey.Hint"] = "Enter your Elavon public API key.",
             ["Plugins.Payments.Elavon.Fields.SecretKey"] = "Secret API Key",
             ["Plugins.Payments.Elavon.Fields.SecretKey.Hint"] = "Enter your Elavon secret API key.",
-            ["Plugins.Payments.Elavon.PaymentFailed"] = "Payment must be completed before proceeding.",
+            ["Plugins.Payments.Elavon.PaymentFailed"] = "Payment was not authorized.",
             ["Plugins.Payments.Elavon.PaymentMethodDescription"] = "Pay securely with Elavon",
-            ["Plugins.Payments.Elavon.Order.Id"] = "Elavon order ID",
             ["Plugins.Payments.Elavon.Order.TransactionId"] = "Elavon transaction ID"
         });
 
