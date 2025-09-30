@@ -66,7 +66,7 @@ public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod, IWidgetPlugin
         if (!string.IsNullOrEmpty(sessionIdValue.ToString()))
         {
             var transaction = await _apiIntegrationService.GetTransactionBySessionIdAsync(sessionIdValue.ToString());
-            if (!transaction.IsAuthorized)
+            if (transaction == null || !transaction.IsAuthorized)
             {
                 result.AddError(await _localizationService.GetResourceAsync("Plugins.Payments.Elavon.PaymentFailed"));
             }
