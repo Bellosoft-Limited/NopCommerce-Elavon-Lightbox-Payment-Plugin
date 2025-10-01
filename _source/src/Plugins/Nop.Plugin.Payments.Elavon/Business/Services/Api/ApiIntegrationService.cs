@@ -69,10 +69,29 @@ public class ApiIntegrationService : IApiIntegrationService
     }
 
     /// <summary>
+    /// Get transaction from Elavon API by transaction ID
+    /// </summary>
+    public async Task<TransactionResponse> GetTransactionByIdAsync(string transactionId)
+    {
+        if (string.IsNullOrEmpty(transactionId))
+        {
+            return null;
+        }
+
+        var apiUrl = $"{_elavonPaymentSettings.ApiUrl.TrimEnd('/')}/transactions/{transactionId}";
+        return await GetAsync<TransactionResponse>(apiUrl);
+    }
+
+    /// <summary>
     /// Get transaction from Elavon API
     /// </summary>
     public async Task<TransactionResponse> GetTransactionBySessionIdAsync(string sessionId)
     {
+        if (string.IsNullOrEmpty(sessionId))
+        {
+            return null;
+        }
+
         var apiUrl = $"{_elavonPaymentSettings.ApiUrl.TrimEnd('/')}/payment-sessions/{sessionId}";
         var paymentSession = await GetAsync<PaymentSessionResponse>(apiUrl);
 

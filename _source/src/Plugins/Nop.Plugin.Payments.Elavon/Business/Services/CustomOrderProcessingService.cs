@@ -142,12 +142,15 @@ internal class CustomOrderProcessingService : OrderProcessingService
 
     protected override async Task<Order> SaveOrderDetailsAsync(ProcessPaymentRequest processPaymentRequest, ProcessPaymentResult processPaymentResult, PlaceOrderContainer details)
     {
-        var sessionId = processPaymentRequest?.CustomValues?[Globals.PaymentSessionId] as string;
+        var sessionId = processPaymentRequest?.CustomValues?[Globals.PaymentSessionId] as string ?? string.Empty;
         var transaction = await _apiIntegrationService.GetTransactionBySessionIdAsync(sessionId);
 
-        var transactionIdKey = await _localizationService.GetResourceAsync("Plugins.Payments.Elavon.Order.TransactionId");
-        processPaymentRequest.CustomValues[transactionIdKey] = transaction.Id;
-        processPaymentRequest.CustomValues.Remove(Globals.PaymentSessionId);
+        if (transaction != null)
+        {
+            var transactionIdKey = await _localizationService.GetResourceAsync("Plugins.Payments.Elavon.Order.TransactionId");
+            processPaymentRequest.CustomValues[transactionIdKey] = transaction.Id;
+            processPaymentRequest.CustomValues.Remove(Globals.PaymentSessionId);
+        }
 
         return await base.SaveOrderDetailsAsync(processPaymentRequest, processPaymentResult, details);
     }

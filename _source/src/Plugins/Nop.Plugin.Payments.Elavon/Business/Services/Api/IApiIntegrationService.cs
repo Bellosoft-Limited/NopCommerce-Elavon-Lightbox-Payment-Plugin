@@ -10,5 +10,7 @@ public interface IApiIntegrationService
 {
     Task<PaymentSessionResponse> CreatePaymentSessionAsync();
 
+    Task<TransactionResponse> GetTransactionByIdAsync(string transactionId);
+
     Task<TransactionResponse> GetTransactionBySessionIdAsync(string sessionId);
 }

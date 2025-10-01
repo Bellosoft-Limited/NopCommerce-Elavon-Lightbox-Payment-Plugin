@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Nop.Core.Http.Extensions;
 using Nop.Plugin.Payments.Elavon.Business;
 using Nop.Plugin.Payments.Elavon.Business.Services.Api;
+using Nop.Plugin.Payments.Elavon.Factories;
 using Nop.Services.Payments;
 using Nop.Web.Controllers;
 
@@ -17,32 +18,49 @@ public class PaymentElavonPublicController : BasePublicController
     #region Fields
 
     private readonly IApiIntegrationService _apiIntegrationService;
+    private readonly PaymentElavonModelFactory _modelFactory;
 
     #endregion
 
     #region Ctor
 
     public PaymentElavonPublicController(
-        IApiIntegrationService apiIntegrationService)
+        IApiIntegrationService apiIntegrationService,
+        PaymentElavonModelFactory modelFactory)
     {
         _apiIntegrationService = apiIntegrationService;
+        _modelFactory = modelFactory;
     }
 
     #endregion
 
     #region Methods
 
-    [HttpPost]
-    public async Task<IActionResult> CreateOrderAsync()
+    public async Task<IActionResult> PluginPaymentInfoAsync()
     {
-        var paymentSession = await _apiIntegrationService.CreatePaymentSessionAsync();
+        var model = await _modelFactory.PrepareCheckoutPaymentInfoModelAsync();
 
-        var orderPaymentInfo = await HttpContext.Session.GetAsync<ProcessPaymentRequest>(Globals.PaymentRequestSessionKey);
-        orderPaymentInfo.CustomValues[Globals.PaymentSessionId] = paymentSession.SessionId;
+        return View("~/Plugins/Payments.Elavon/Views/Public/PluginPaymentInfo.cshtml", model);
+    }
 
-        await HttpContext.Session.SetAsync(Globals.PaymentRequestSessionKey, orderPaymentInfo);
+    [HttpPost]
+    public async Task<IActionResult> CreatePaymentSessionAsync()
+    {
+        try
+        {
+            var paymentSession = await _apiIntegrationService.CreatePaymentSessionAsync();
 
-        return Ok(paymentSession.SessionId);
+            var processPaymentRequest = new ProcessPaymentRequest();
+            processPaymentRequest.CustomValues[Globals.PaymentSessionId] = paymentSession.SessionId;
+
+            await HttpContext.Session.SetAsync(Globals.PaymentRequestSessionKey, processPaymentRequest);
+
+            return Ok(paymentSession.SessionId);
+        } 
+        catch (Exception)
+        {
+            return Problem();
+        }
     }
 
     #endregion

@@ -3,24 +3,26 @@
 // </copyright>
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.IdentityModel.Tokens;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
+using Nop.Core.Domain.Payments;
 using Nop.Plugin.Payments.Elavon.Business;
+using Nop.Plugin.Payments.Elavon.Business.Services;
 using Nop.Plugin.Payments.Elavon.Business.Services.Api;
 using Nop.Plugin.Payments.Elavon.Components;
-using Nop.Services.Cms;
+using Nop.Plugin.Payments.Elavon.Tasks;
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
 using Nop.Services.Payments;
 using Nop.Services.Plugins;
-using Nop.Web.Framework.Infrastructure;
 
 namespace Nop.Plugin.Payments.Elavon;
 
 /// <summary>
 /// Elavon payment processor
 /// </summary>
-public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod, IWidgetPlugin
+public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod
 {
     #region Fields
 
@@ -28,6 +30,8 @@ public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod, IWidgetPlugin
     private readonly IWebHelper _webHelper;
     private readonly ILocalizationService _localizationService;
     private readonly IApiIntegrationService _apiIntegrationService;
+    private readonly ElavonPaymentSettings _elavonPaymentSettings;
+    private readonly SyncOrdersWithApiTask _syncOrdersWithApiTask;
 
     #endregion
 
@@ -37,12 +41,16 @@ public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod, IWidgetPlugin
         ISettingService settingService,
         IWebHelper webHelper,
         ILocalizationService localizationService,
-        IApiIntegrationService apiIntegrationService)
+        IApiIntegrationService apiIntegrationService,
+        ElavonPaymentSettings elavonPaymentSettings,
+        SyncOrdersWithApiTask syncOrdersWithApiTask)
     {
         _settingService = settingService;
         _webHelper = webHelper;
         _localizationService = localizationService;
         _apiIntegrationService = apiIntegrationService;
+        _elavonPaymentSettings = elavonPaymentSettings;
+        _syncOrdersWithApiTask = syncOrdersWithApiTask;
     }
 
     #endregion
@@ -58,15 +66,22 @@ public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod, IWidgetPlugin
     {
         var result = new ProcessPaymentResult();
 
-        if (!processPaymentRequest.CustomValues.TryGetValue(Globals.PaymentSessionId, out var sessionIdValue))
+        var sessionId = processPaymentRequest.CustomValues.TryGetValue(Globals.PaymentSessionId, out var sessionIdValue)
+            ? sessionIdValue.ToString()
+            : string.Empty;
+
+        if (string.IsNullOrEmpty(sessionId))
         {
             result.AddError(await _localizationService.GetResourceAsync("Plugins.Payments.Elavon.PaymentFailed"));
         }
-
-        if (!string.IsNullOrEmpty(sessionIdValue.ToString()))
+        else
         {
-            var transaction = await _apiIntegrationService.GetTransactionBySessionIdAsync(sessionIdValue.ToString());
-            if (transaction == null || !transaction.IsAuthorized)
+            var transaction = await _apiIntegrationService.GetTransactionBySessionIdAsync(sessionId);
+            if (transaction != null && transaction.IsAuthorized)
+            {
+                result.NewPaymentStatus = PaymentStatus.Authorized;
+            } 
+            else
             {
                 result.AddError(await _localizationService.GetResourceAsync("Plugins.Payments.Elavon.PaymentFailed"));
             }
@@ -91,7 +106,8 @@ public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod, IWidgetPlugin
     /// <returns>true - hide; false - display.</returns>
     public Task<bool> HidePaymentMethodAsync(IList<ShoppingCartItem> cart)
     {
-        return Task.FromResult(false);
+        var isConfigured = PaymentElavonServiceManager.IsConfigured(_elavonPaymentSettings);
+        return Task.FromResult(!isConfigured);
     }
 
     /// <summary>
@@ -198,33 +214,7 @@ public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod, IWidgetPlugin
     /// <returns>View component name</returns>
     public Type GetPublicViewComponent()
     {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>
-    /// Gets widget zones where this widget should be rendered
-    /// </summary>
-    /// <returns>
-    /// A task that represents the asynchronous operation
-    /// The task result contains the widget zones
-    /// </returns>
-    public Task<IList<string>> GetWidgetZonesAsync()
-    {
-        return Task.FromResult<IList<string>>(new List<string>
-        {
-            PublicWidgetZones.OpCheckoutConfirmBottom,
-            PublicWidgetZones.CheckoutConfirmBottom
-        });
-    }
-
-    /// <summary>
-    /// Gets a type of a view component for displaying widget
-    /// </summary>
-    /// <param name="widgetZone">Name of the widget zone</param>
-    /// <returns>View component type</returns>
-    public Type GetWidgetViewComponent(string widgetZone)
-    {
-        return typeof(PaymentElavonViewComponent);
+        return typeof(PaymentInfoViewComponent);
     }
 
     /// <summary>
@@ -258,10 +248,12 @@ public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod, IWidgetPlugin
             ["Plugins.Payments.Elavon.Fields.SecretKey.Hint"] = "Enter your Elavon secret API key.",
             ["Plugins.Payments.Elavon.PaymentFailed"] = "Payment was not authorized.",
             ["Plugins.Payments.Elavon.PaymentMethodDescription"] = "Pay securely with Elavon",
-            ["Plugins.Payments.Elavon.Order.TransactionId"] = "Elavon transaction ID"
+            ["Plugins.Payments.Elavon.Order.TransactionId"] = "Elavon transaction ID",
+            ["Plugins.Payments.Elavon.Order.Button"] = "Pay with Elavon",
         });
 
         await base.InstallAsync();
+        await _syncOrdersWithApiTask.InstallTaskAsync();
     }
 
     /// <summary>
@@ -276,6 +268,7 @@ public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod, IWidgetPlugin
         await _localizationService.DeleteLocaleResourcesAsync("Plugins.Payments.Elavon");
 
         await base.UninstallAsync();
+        await _syncOrdersWithApiTask.UninstallTaskAsync();
     }
 
     #endregion
@@ -315,12 +308,7 @@ public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod, IWidgetPlugin
     /// <summary>
     /// Gets a value indicating whether we should display a payment information page for this plugin
     /// </summary>
-    public bool SkipPaymentInfo => true;
-
-    /// <summary>
-    /// Gets a value indicating whether to hide this plugin on the widget list page in the admin area
-    /// </summary>
-    public bool HideInWidgetList => false;
+    public bool SkipPaymentInfo => false;
 
     /// <summary>
     /// Gets a payment method description that will be displayed on checkout pages in the public store

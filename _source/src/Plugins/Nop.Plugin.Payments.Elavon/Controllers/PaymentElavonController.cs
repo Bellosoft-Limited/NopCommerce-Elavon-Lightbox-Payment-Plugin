@@ -75,7 +75,7 @@ public class PaymentElavonController : BasePaymentController
             model.SecretKey_OverrideForStore = await _settingService.SettingExistsAsync(elavonPaymentSettings, x => x.SecretKey, storeScope);
         }
 
-        return View("~/Plugins/Payments.Elavon/Views/Configure.cshtml", model);
+        return View("~/Plugins/Payments.Elavon/Views/Admin/Configure.cshtml", model);
     }
 
     [HttpPost]
