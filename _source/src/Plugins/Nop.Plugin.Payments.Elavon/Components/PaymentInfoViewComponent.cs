@@ -1,4 +1,4 @@
-﻿// <copyright file="PaymentElavonViewComponent.cs" company="Bellosoft Limited">
+﻿// <copyright file="PaymentInfoViewComponent.cs" company="Bellosoft Limited">
 // Copyright (c) Bellosoft Limited. All rights reserved.
 // </copyright>
 

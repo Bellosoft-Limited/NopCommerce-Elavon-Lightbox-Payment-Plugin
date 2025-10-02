@@ -14,6 +14,4 @@ public class PaymentSessionResponse
     [JsonProperty("id")] public string SessionId { get; set; }
 
     [JsonProperty("transaction")] public string TransactionHref { get; set; }
-
-    [JsonProperty("order")] public string OrderHref { get; set; }
 }

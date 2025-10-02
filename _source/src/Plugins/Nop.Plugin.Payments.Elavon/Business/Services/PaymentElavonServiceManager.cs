@@ -26,6 +26,11 @@ public class PaymentElavonServiceManager
         _paymentPluginManager = paymentPluginManager;
     }
 
+    /// <summary>
+    /// Check whether the plugin is configured
+    /// </summary>
+    /// <param name="settings">Plugin settings</param>
+    /// <returns>Result</returns>
     public static bool IsConfigured(ElavonPaymentSettings settings)
     {
         return !string.IsNullOrEmpty(settings.HppUrl) && 
@@ -36,7 +41,7 @@ public class PaymentElavonServiceManager
     }
 
     /// <summary>
-    /// Check whether the plugin is configured, connected and active
+    /// Check whether the plugin is configured and active
     /// </summary>
     /// <param name="settings">Plugin settings</param>
     /// <returns>

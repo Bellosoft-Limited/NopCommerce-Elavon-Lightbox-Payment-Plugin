@@ -12,6 +12,4 @@ namespace Nop.Plugin.Payments.Elavon.Models.DTO;
 public class OrderResponse
 {
     [JsonProperty("href")] public string Href { get; set; }
-
-    [JsonProperty("id")] public string OrderId { get; set; }
 }
