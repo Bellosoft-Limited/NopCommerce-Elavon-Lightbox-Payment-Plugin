@@ -40,11 +40,11 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_PATH }}
 
-    - name: Build solution
-      run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore
+    - name: Create output directory
+      run: mkdir -p ${{ env.OUTPUT_PATH }}
 
-    - name: Build plugin
-      run: dotnet build ${{ env.PLUGIN_PROJECT_PATH }} --configuration Release --no-restore
+    - name: Build solution (includes plugin)
+      run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore
 
     - name: Get plugin version from plugin.json
       id: get_version
@@ -58,18 +58,27 @@ jobs:
         mkdir -p plugin-package
         cd plugin-package
         
+        echo "Looking for build output in: ${{ env.OUTPUT_PATH }}"
+        ls -la ../${{ env.OUTPUT_PATH }} || echo "Output path not found"
+        
         # Copy the main plugin files from the build output
         if [ -d "../${{ env.OUTPUT_PATH }}" ]; then
+          echo "Copying from build output directory"
           cp -r ../${{ env.OUTPUT_PATH }}/* .
         else
-          echo "Output path not found, copying from project directory"
-          # Fallback: copy directly from source if build output not found
+          echo "Output path not found, copying from project directory and bin"
+          
+          # Copy static files from source
           cp -r ../_source/src/Plugins/Nop.Plugin.Payments.Elavon/Views ./Views || true
           cp -r ../_source/src/Plugins/Nop.Plugin.Payments.Elavon/Content ./Content || true
           cp ../_source/src/Plugins/Nop.Plugin.Payments.Elavon/plugin.json ./plugin.json || true
           cp ../_source/src/Plugins/Nop.Plugin.Payments.Elavon/logo.png ./logo.png || true
           
-          # Find and copy the built DLL
+          # Copy the built DLL from bin directory
+          cp ../_source/src/Plugins/Nop.Plugin.Payments.Elavon/bin/Release/net9.0/Nop.Plugin.Payments.Elavon.dll ./ || echo "DLL not found in expected location"
+          
+          # Find and copy any other built files
+          find ../_source -name "Nop.Plugin.Payments.Elavon.*" -type f -exec echo "Found: {}" \;
           find ../_source -name "Nop.Plugin.Payments.Elavon.dll" -type f -exec cp {} ./ \;
         fi
         
