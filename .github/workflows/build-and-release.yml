@@ -6,6 +6,17 @@ on:
       - 'v*'
     branches:
       - master
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a release (if not, will create artifact)'
+        required: false
+        default: false
+        type: boolean
+      release_version:
+        description: 'Release version (optional, will use plugin.json version if empty)'
+        required: false
+        type: string
 
 env:
   DOTNET_VERSION: '9.0.x'
@@ -123,12 +134,21 @@ jobs:
         For support and documentation, visit: https://github.com/Bellosoft-Limited/NopCommerce-Elavon-Lightbox-Payment-Plugin
         EOF
 
+    - name: Determine release version
+      id: release_version
+      run: |
+        if [ "${{ github.event.inputs.release_version }}" != "" ]; then
+          echo "version=${{ github.event.inputs.release_version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${{ steps.get_version.outputs.plugin_version }}" >> $GITHUB_OUTPUT
+        fi
+
     - name: Create Release
-      if: startsWith(github.ref, 'refs/tags/')
+      if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.create_release == 'true'
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ github.ref_name }}
-        name: "Elavon Payment Plugin v${{ steps.get_version.outputs.plugin_version }}"
+        tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', steps.release_version.outputs.version) }}
+        name: "Elavon Payment Plugin v${{ steps.release_version.outputs.version }}"
         body_path: release_notes.md
         files: |
           ${{ env.PLUGIN_NAME }}-v${{ steps.get_version.outputs.plugin_version }}.zip
@@ -137,7 +157,16 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Upload artifact (for non-release builds)
+      if: ${{ !startsWith(github.ref, 'refs/tags/') && github.event.inputs.create_release != 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.PLUGIN_NAME }}-v${{ steps.get_version.outputs.plugin_version }}
+        path: ${{ env.PLUGIN_NAME }}-v${{ steps.get_version.outputs.plugin_version }}.zip
+        retention-days: 30
+
     - name: Delete old GitHub releases, keep only 10
+      if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.create_release == 'true'
       uses: Nats-ji/delete-old-releases@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
