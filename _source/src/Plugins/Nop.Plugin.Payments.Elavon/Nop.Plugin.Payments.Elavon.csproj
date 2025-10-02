@@ -22,9 +22,10 @@
     <None Remove="logo.png" />
     <None Remove="plugin.json" />
     <None Remove="Content\styles.css" />
-    <None Remove="Views\Configure.cshtml" />
-    <None Remove="Views\PaymentInfo.cshtml" />
-    <None Remove="Views\PluginPaymentInfo.cshtml" />
+    <None Remove="Views\Admin\Configure.cshtml" />
+    <None Remove="Views\Public\PaymentInfo.cshtml" />
+    <None Remove="Views\Public\_Button.cshtml" />
+    <None Remove="Views\Public\PluginPaymentInfo.cshtml" />
     <None Remove="Views\_ViewImports.cshtml" />
   </ItemGroup>
 

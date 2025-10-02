@@ -278,7 +278,7 @@ public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod
     /// <summary>
     /// Gets a value indicating whether capture is supported
     /// </summary>
-    public bool SupportCapture => true;
+    public bool SupportCapture => false;
 
     /// <summary>
     /// Gets a value indicating whether partial refund is supported
