@@ -1,0 +1,8 @@
+.payment-info .info {
+  display: flex;
+  justify-content: center;
+}
+
+.elavon-button-disabled {
+  opacity: 0.5 !important;
+}

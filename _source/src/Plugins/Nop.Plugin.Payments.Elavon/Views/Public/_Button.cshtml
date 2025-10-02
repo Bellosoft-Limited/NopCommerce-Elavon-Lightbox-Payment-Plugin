@@ -1,0 +1,127 @@
+﻿@model Nop.Plugin.Payments.Elavon.Models.PaymentInfoModel
+
+<button id="js-submit-button" type="button" class="button-1 confirm-order-next-step-button" style="display: none;">
+    @T("Plugins.Payments.Elavon.Order.Button")
+</button>
+
+<link rel="stylesheet" href="~/Plugins/Payments.Elavon/Content/styles.css" />
+<script asp-location="Auto" src="@Model.LightboxUrl/client/library.js"></script>
+
+<script asp-location="Footer">
+    (async function () {
+        let waitingElavon = true;
+        let sessionId, orderCreated, lightbox;
+        const submitButton = document.getElementById("js-submit-button");
+
+        try {
+            displayAjaxLoading(true);
+            const postData = addAntiForgeryToken();
+            const formBody = new URLSearchParams(postData).toString();
+
+            const response = await fetch("@Url.Action("CreatePaymentSession", "PaymentElavonPublic")", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+                },
+                body: formBody
+            });
+
+            if (!response.ok) {
+                throw new Error();
+            }
+
+            sessionId = await response.text();
+            submitButton.style.display = "inline-block";
+        } catch {
+            displayBarNotification("Payment method failed to load. Please try again.", "warning");
+        } finally {
+            waitingElavon = false;
+            displayAjaxLoading(false);
+        }
+
+        async function createOrder() {
+            try {
+                waitingElavon = true;
+                displayAjaxLoading(true);
+
+                if (orderCreated) {
+                    window.location = "@Url.RouteUrl("CheckoutCompleted")";
+                    return;
+                }
+
+                const postData = addAntiForgeryToken();
+                const formBody = new URLSearchParams(postData).toString();
+                displayAjaxLoading(true);
+
+                const response = await fetch("@Url.Action("OpcConfirmOrder", "Checkout")", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+                    },
+                    body: formBody
+                });
+
+                if (!response.ok) {
+                    throw new Error("Order creation failed. Please try again.");
+                }
+
+                var responseBody = await response.json();
+
+                if (responseBody.error) {
+                    throw new Error(responseBody.message);
+                }
+
+                if (responseBody.success) {
+                    orderCreated = true;
+                    setTimeout(() => lightbox?.show(), 0);
+                }
+            } catch (err) {
+                displayBarNotification(err.message, "error");
+            } finally {
+                waitingElavon = false;
+                displayAjaxLoading(false);
+            }
+        }
+
+        submitButton.addEventListener("click", runElavonLightbox);
+
+        function runElavonLightbox() {
+            if (waitingElavon) {
+                return;
+            }
+
+            submitButton.disabled = true;
+            submitButton.classList.add("elavon-button-disabled");
+
+            const MessageTypes = window.ElavonLightbox.MessageTypes;
+
+            if (lightbox) {
+                lightbox.show();
+                return;
+            }
+
+            lightbox = new window.ElavonLightbox({
+                sessionId,
+                onReady: (error) => {
+                    if (error) {
+                        displayBarNotification("Payment method failed to load. Please try again.", "warning");
+                    } else {
+                        lightbox.show();
+                    }
+                },
+                messageHandler: (message, defaultAction) => {
+                    switch (message.type) {
+                        case MessageTypes.transactionCreated:
+                            createOrder();
+                            break;
+                        case MessageTypes.closeOverlay:
+                            submitButton.disabled = false;
+                            submitButton.classList.remove("elavon-button-disabled");
+                            break;
+                    }
+                    defaultAction();
+                },
+            });
+        }
+    })();
+</script>

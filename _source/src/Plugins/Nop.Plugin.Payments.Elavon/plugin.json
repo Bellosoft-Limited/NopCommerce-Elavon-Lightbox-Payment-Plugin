@@ -1,0 +1,13 @@
+﻿{
+  "Group": "Payment methods",
+  "FriendlyName": "Elavon",
+  "SystemName": "Payments.Elavon",
+  "Version": "4.80.17",
+  "SupportedVersions": [
+    "4.80"
+  ],
+  "Author": "Bellosoft-Limited",
+  "DisplayOrder": -1,
+  "FileName": "Nop.Plugin.Payments.Elavon.dll",
+  "Description": "This payment plugin is an integration with Elavon that helps you accept and make payments globally"
+}
