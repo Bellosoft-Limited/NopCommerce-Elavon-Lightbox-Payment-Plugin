@@ -66,36 +66,43 @@ jobs:
 
     - name: Create plugin package directory
       run: |
-        mkdir -p plugin-package
-        cd plugin-package
+        # Create the proper NopCommerce plugin structure with root directory
+        mkdir -p plugin-package/Payments.Elavon
+        cd plugin-package/Payments.Elavon
         
         echo "Looking for build output in: ${{ env.OUTPUT_PATH }}"
-        ls -la ../${{ env.OUTPUT_PATH }} || echo "Output path not found"
+        ls -la ../../${{ env.OUTPUT_PATH }} || echo "Output path not found"
         
         # Copy the main plugin files from the build output
-        if [ -d "../${{ env.OUTPUT_PATH }}" ]; then
+        if [ -d "../../${{ env.OUTPUT_PATH }}" ]; then
           echo "Copying from build output directory"
-          cp -r ../${{ env.OUTPUT_PATH }}/* .
+          cp -r ../../${{ env.OUTPUT_PATH }}/* .
         else
           echo "Output path not found, copying from project directory and bin"
           
           # Copy static files from source
-          cp -r ../_source/src/Plugins/Nop.Plugin.Payments.Elavon/Views ./Views || true
-          cp -r ../_source/src/Plugins/Nop.Plugin.Payments.Elavon/Content ./Content || true
-          cp ../_source/src/Plugins/Nop.Plugin.Payments.Elavon/plugin.json ./plugin.json || true
-          cp ../_source/src/Plugins/Nop.Plugin.Payments.Elavon/logo.png ./logo.png || true
+          cp -r ../../_source/src/Plugins/Nop.Plugin.Payments.Elavon/Views ./Views || true
+          cp -r ../../_source/src/Plugins/Nop.Plugin.Payments.Elavon/Content ./Content || true
+          cp ../../_source/src/Plugins/Nop.Plugin.Payments.Elavon/plugin.json ./plugin.json || true
+          cp ../../_source/src/Plugins/Nop.Plugin.Payments.Elavon/logo.png ./logo.png || true
           
           # Copy the built DLL from bin directory
-          cp ../_source/src/Plugins/Nop.Plugin.Payments.Elavon/bin/Release/net9.0/Nop.Plugin.Payments.Elavon.dll ./ || echo "DLL not found in expected location"
+          cp ../../_source/src/Plugins/Nop.Plugin.Payments.Elavon/bin/Release/net9.0/Nop.Plugin.Payments.Elavon.dll ./ || echo "DLL not found in expected location"
           
           # Find and copy any other built files
-          find ../_source -name "Nop.Plugin.Payments.Elavon.*" -type f -exec echo "Found: {}" \;
-          find ../_source -name "Nop.Plugin.Payments.Elavon.dll" -type f -exec cp {} ./ \;
+          find ../../_source -name "Nop.Plugin.Payments.Elavon.*" -type f -exec echo "Found: {}" \;
+          find ../../_source -name "Nop.Plugin.Payments.Elavon.dll" -type f -exec cp {} ./ \;
         fi
         
-        # List contents for debugging
-        echo "Package contents:"
+        # Go back to plugin-package directory
+        cd ..
+        
+        # List the plugin structure for debugging
+        echo "Plugin package structure:"
         find . -type f -ls
+        echo ""
+        echo "Root directory contents:"
+        ls -la
 
     - name: Create zip archive
       run: |
