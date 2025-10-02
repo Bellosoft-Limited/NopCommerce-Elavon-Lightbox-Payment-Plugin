@@ -1,0 +1,137 @@
+name: Build and Release Elavon Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - master
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  PLUGIN_NAME: 'Nop.Plugin.Payments.Elavon'
+  SOLUTION_PATH: '_source/src/NopCommerce.sln'
+  PLUGIN_PROJECT_PATH: '_source/src/Plugins/Nop.Plugin.Payments.Elavon/Nop.Plugin.Payments.Elavon.csproj'
+  OUTPUT_PATH: '_source/src/Presentation/Nop.Web/Plugins/Payments.Elavon'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.SOLUTION_PATH }}
+
+    - name: Build solution
+      run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore
+
+    - name: Build plugin
+      run: dotnet build ${{ env.PLUGIN_PROJECT_PATH }} --configuration Release --no-restore
+
+    - name: Get plugin version from plugin.json
+      id: get_version
+      run: |
+        PLUGIN_VERSION=$(cat _source/src/Plugins/Nop.Plugin.Payments.Elavon/plugin.json | grep -o '"Version"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"')
+        echo "plugin_version=$PLUGIN_VERSION" >> $GITHUB_OUTPUT
+        echo "Plugin version: $PLUGIN_VERSION"
+
+    - name: Create plugin package directory
+      run: |
+        mkdir -p plugin-package
+        cd plugin-package
+        
+        # Copy the main plugin files from the build output
+        if [ -d "../${{ env.OUTPUT_PATH }}" ]; then
+          cp -r ../${{ env.OUTPUT_PATH }}/* .
+        else
+          echo "Output path not found, copying from project directory"
+          # Fallback: copy directly from source if build output not found
+          cp -r ../_source/src/Plugins/Nop.Plugin.Payments.Elavon/Views ./Views || true
+          cp -r ../_source/src/Plugins/Nop.Plugin.Payments.Elavon/Content ./Content || true
+          cp ../_source/src/Plugins/Nop.Plugin.Payments.Elavon/plugin.json ./plugin.json || true
+          cp ../_source/src/Plugins/Nop.Plugin.Payments.Elavon/logo.png ./logo.png || true
+          
+          # Find and copy the built DLL
+          find ../_source -name "Nop.Plugin.Payments.Elavon.dll" -type f -exec cp {} ./ \;
+        fi
+        
+        # List contents for debugging
+        echo "Package contents:"
+        find . -type f -ls
+
+    - name: Create zip archive
+      run: |
+        cd plugin-package
+        zip -r "../${{ env.PLUGIN_NAME }}-v${{ steps.get_version.outputs.plugin_version }}.zip" .
+        cd ..
+        echo "Created archive: ${{ env.PLUGIN_NAME }}-v${{ steps.get_version.outputs.plugin_version }}.zip"
+        ls -la *.zip
+
+    - name: Generate release notes
+      id: release_notes
+      run: |
+        cat > release_notes.md << 'EOF'
+        ## Elavon Payment Plugin v${{ steps.get_version.outputs.plugin_version }}
+        
+        ### What's Included
+        - Plugin DLL and dependencies
+        - Admin configuration views
+        - Payment processing views
+        - Plugin assets (CSS, images)
+        - Plugin descriptor (plugin.json)
+        
+        ### Installation Instructions
+        1. Download the zip file below
+        2. Extract the contents to your NopCommerce `/Plugins/Payments.Elavon/` directory
+        3. Restart your application
+        4. Go to Admin → Configuration → Local Plugins
+        5. Find "Elavon" in the payment methods list and click "Install"
+        6. Configure the plugin settings as needed
+        
+        ### Compatibility
+        - NopCommerce 4.80+
+        - .NET 9.0+
+        
+        ### Support
+        For support and documentation, visit: https://github.com/Bellosoft-Limited/NopCommerce-Elavon-Lightbox-Payment-Plugin
+        EOF
+
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: "Elavon Payment Plugin v${{ steps.get_version.outputs.plugin_version }}"
+        body_path: release_notes.md
+        files: |
+          ${{ env.PLUGIN_NAME }}-v${{ steps.get_version.outputs.plugin_version }}.zip
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Delete old GitHub releases, keep only 10
+      uses: Nats-ji/delete-old-releases@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        keep-count: 10
+        keep-old-minor-releases: true
+        keep-old-minor-releases-count: 1
