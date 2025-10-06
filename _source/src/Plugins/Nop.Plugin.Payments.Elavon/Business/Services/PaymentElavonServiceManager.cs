@@ -3,6 +3,8 @@
 // </copyright>
 
 using Nop.Core;
+using Nop.Core.Domain.Customers;
+using Nop.Services.Common;
 using Nop.Services.Payments;
 
 namespace Nop.Plugin.Payments.Elavon.Business.Services;
@@ -15,15 +17,18 @@ public class PaymentElavonServiceManager
     private readonly IWorkContext _workContext;
     private readonly IStoreContext _storeContext;
     private readonly IPaymentPluginManager _paymentPluginManager;
+    private readonly IGenericAttributeService _genericAttributeService;
 
     public PaymentElavonServiceManager(
         IWorkContext workContext,
         IStoreContext storeContext,
-        IPaymentPluginManager paymentPluginManager)
+        IPaymentPluginManager paymentPluginManager,
+        IGenericAttributeService genericAttributeService)
     {
         _workContext = workContext;
         _storeContext = storeContext;
         _paymentPluginManager = paymentPluginManager;
+        _genericAttributeService = genericAttributeService;
     }
 
     /// <summary>
@@ -48,21 +53,33 @@ public class PaymentElavonServiceManager
     /// A task that represents the asynchronous operation
     /// The task result contains the check result; plugin instance
     /// </returns>
-    public async Task<(bool Active, IPaymentMethod paymentMethod)> IsActiveAsync(ElavonPaymentSettings settings)
+    public async Task<bool> IsActiveAsync(ElavonPaymentSettings settings)
     {
         if (!IsConfigured(settings))
         {
-            return (false, null);
+            return false;
         }
 
         var customer = await _workContext.GetCurrentCustomerAsync();
         var store = await _storeContext.GetCurrentStoreAsync();
         var plugin = await _paymentPluginManager.LoadPluginBySystemNameAsync(Globals.SystemName, customer, store.Id);
-        if (!_paymentPluginManager.IsPluginActive(plugin))
-        {
-            return (false, plugin);
-        }
 
-        return (true, plugin);
+        return _paymentPluginManager.IsPluginActive(plugin);
+    }
+
+    /// <summary>
+    /// Check whether the payment method is selected
+    /// </summary>
+    /// <param name="settings">Plugin settings</param>
+    /// <returns>Result</returns>
+    public async Task<bool> IsSelectedAsync()
+    {
+        var customer = await _workContext.GetCurrentCustomerAsync();
+        var store = await _storeContext.GetCurrentStoreAsync();
+
+        var selectedPaymentMethodSystemName = await _genericAttributeService.GetAttributeAsync<string>(customer, NopCustomerDefaults.SelectedPaymentMethodAttribute, store.Id);
+
+        return !string.IsNullOrEmpty(selectedPaymentMethodSystemName)
+            && selectedPaymentMethodSystemName.Equals(Globals.SystemName, StringComparison.InvariantCultureIgnoreCase);
     }
 }
