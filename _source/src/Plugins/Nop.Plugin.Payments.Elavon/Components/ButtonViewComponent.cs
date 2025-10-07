@@ -27,7 +27,7 @@ public class ButtonViewComponent : NopViewComponent
 
     public async Task<IViewComponentResult> InvokeAsync()
     {
-        var (active, _) = await _paymentElavonServiceManager.IsActiveAsync(_elavonPaymentSettings);
+        var active = await _paymentElavonServiceManager.IsActiveAsync(_elavonPaymentSettings);
         if (!active)
         {
             return Content(string.Empty);

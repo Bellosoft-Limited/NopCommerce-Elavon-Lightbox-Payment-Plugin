@@ -35,6 +35,7 @@ namespace Nop.Plugin.Payments.Elavon.Business.Services;
 internal class CustomOrderProcessingService : OrderProcessingService
 {
     private readonly IApiIntegrationService _apiIntegrationService;
+    private readonly PaymentElavonServiceManager _paymentElavonServiceManager;
 
     #region Constructor
 
@@ -86,7 +87,8 @@ internal class CustomOrderProcessingService : OrderProcessingService
         RewardPointsSettings rewardPointsSettings,
         ShippingSettings shippingSettings,
         TaxSettings taxSettings,
-        IApiIntegrationService apiIntegrationService)
+        IApiIntegrationService apiIntegrationService,
+        PaymentElavonServiceManager paymentElavonServiceManager)
         : base(currencySettings,
             addressService,
             affiliateService,
@@ -136,20 +138,25 @@ internal class CustomOrderProcessingService : OrderProcessingService
             taxSettings)
     {
         _apiIntegrationService = apiIntegrationService;
+        _paymentElavonServiceManager = paymentElavonServiceManager;
     }
 
     #endregion Constructor
 
     protected override async Task<Order> SaveOrderDetailsAsync(ProcessPaymentRequest processPaymentRequest, ProcessPaymentResult processPaymentResult, PlaceOrderContainer details)
     {
-        var sessionId = processPaymentRequest?.CustomValues?[Globals.PaymentSessionId] as string ?? string.Empty;
-        var transaction = await _apiIntegrationService.GetTransactionBySessionIdAsync(sessionId);
-
-        if (transaction != null)
+        var isSelected = await _paymentElavonServiceManager.IsSelectedAsync();
+        if (isSelected)
         {
-            var transactionIdKey = await _localizationService.GetResourceAsync("Plugins.Payments.Elavon.Order.TransactionId");
-            processPaymentRequest.CustomValues[transactionIdKey] = transaction.Id;
-            processPaymentRequest.CustomValues.Remove(Globals.PaymentSessionId);
+            var sessionId = processPaymentRequest?.CustomValues?[Globals.PaymentSessionId] as string ?? string.Empty;
+            var transaction = await _apiIntegrationService.GetTransactionBySessionIdAsync(sessionId);
+
+            if (transaction != null)
+            {
+                var transactionIdKey = await _localizationService.GetResourceAsync("Plugins.Payments.Elavon.Order.TransactionId");
+                processPaymentRequest.CustomValues[transactionIdKey] = transaction.Id;
+                processPaymentRequest.CustomValues.Remove(Globals.PaymentSessionId);
+            }
         }
 
         return await base.SaveOrderDetailsAsync(processPaymentRequest, processPaymentResult, details);
