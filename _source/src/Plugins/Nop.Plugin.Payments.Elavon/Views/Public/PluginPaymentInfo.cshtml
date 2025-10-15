@@ -7,22 +7,25 @@
 }
 
 <div class="page checkout-page payment-info-page">
-    <div class="page-title">
-        <h1>@T("Checkout.PaymentInfo")</h1>
-    </div>
     <div class="page-body checkout-data">
         @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.CheckoutPaymentInfoTop, additionalData = Model })
         <div class="section payment-info">
-            <div class="info">
-                @await Component.InvokeAsync(typeof(ButtonViewComponent))
+            <div class="payment-info-page__form">
+                <h1 class="payment-info-page__title">@T("Checkout.PaymentInfo")</h1>
+                <div class="info">
+                    @await Component.InvokeAsync(typeof(ButtonViewComponent))
+                </div>
+                <div class="buttons">
+                    <a class="btn btn-outline-primary back-button" href="@Url.RouteUrl("CheckoutPaymentMethod")">Back</a>
+                </div>
             </div>
         </div>
         @await Component.InvokeAsync(typeof(WidgetViewComponent), new { widgetZone = PublicWidgetZones.CheckoutPaymentInfoBottom, additionalData = Model })
         <div class="section order-summary">
-            <div class="title">
-                <strong>@T("Checkout.OrderSummary")</strong>
+            <h2 class="order-summary-sidebar__title">@T("Checkout.OrderSummary")</h2>
+            <div class="order-summary-content">
+                @await Component.InvokeAsync(typeof(OrderSummaryViewComponent))
             </div>
-            @await Component.InvokeAsync(typeof(OrderSummaryViewComponent))
         </div>
     </div>
 </div>
