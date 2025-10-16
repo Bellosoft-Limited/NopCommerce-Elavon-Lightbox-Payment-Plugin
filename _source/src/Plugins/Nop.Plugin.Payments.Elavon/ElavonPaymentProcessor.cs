@@ -249,7 +249,7 @@ public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod
             ["Plugins.Payments.Elavon.PaymentFailed"] = "Payment was not authorized.",
             ["Plugins.Payments.Elavon.PaymentMethodDescription"] = "Pay securely with Elavon",
             ["Plugins.Payments.Elavon.Order.TransactionId"] = "Elavon transaction ID",
-            ["Plugins.Payments.Elavon.Order.Button"] = "Pay with Elavon",
+            ["Plugins.Payments.Elavon.Order.Button"] = "Pay with Debit/Credit card",
         });
 
         await base.InstallAsync();
