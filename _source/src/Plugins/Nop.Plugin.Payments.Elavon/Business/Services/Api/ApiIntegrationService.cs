@@ -121,7 +121,8 @@ public class ApiIntegrationService : IApiIntegrationService
             {
                 Amount = cartTotal,
                 CurrencyCode = currency.CurrencyCode
-            }
+            },
+            ShopperEmailAddress = customer.Email
         };
 
         return await PostAsync<OrderRequest, OrderResponse>(apiUrl, requestData);
