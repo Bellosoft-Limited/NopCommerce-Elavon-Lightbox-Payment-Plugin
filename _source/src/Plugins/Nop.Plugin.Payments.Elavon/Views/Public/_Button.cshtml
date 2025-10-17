@@ -1,8 +1,15 @@
 ﻿@model Nop.Plugin.Payments.Elavon.Models.PaymentInfoModel
 
-<button id="js-submit-button" type="button" class="button-1 confirm-order-next-step-button" style="display: none;">
-    @T("Plugins.Payments.Elavon.Order.Button")
-</button>
+<div id="js-elavon-container" class="elavon-button-container" style="display: none">
+    <button id="js-submit-button" type="button" class="button-1 elavon-button confirm-order-next-step-button">
+        @T("Plugins.Payments.Elavon.Order.Button")
+    </button>
+
+    <span class="elavon-powered-by"> 
+        <small> Powered by </small> 
+        <img src="~/Plugins/Payments.Elavon/logo.png" height="20" /> 
+    </span>
+</div>
 
 <link rel="stylesheet" href="~/Plugins/Payments.Elavon/Content/styles.css" />
 <script asp-location="Auto" src="@Model.LightboxUrl/client/library.js"></script>
@@ -11,6 +18,7 @@
     (async function () {
         let waitingElavon = true;
         let sessionId, orderCreated, lightbox;
+        const buttonContainer = document.getElementById("js-elavon-container");
         const submitButton = document.getElementById("js-submit-button");
 
         try {
@@ -31,7 +39,7 @@
             }
 
             sessionId = await response.text();
-            submitButton.style.display = "inline-block";
+            buttonContainer.style.display = "flex";
         } catch {
             displayBarNotification("Payment method failed to load. Please try again.", "warning");
         } finally {

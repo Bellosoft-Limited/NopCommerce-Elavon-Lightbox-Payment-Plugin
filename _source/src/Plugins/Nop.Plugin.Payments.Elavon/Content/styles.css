@@ -1,8 +1,30 @@
-.payment-info .info {
+.elavon-button-container {
   display: flex;
-  justify-content: center;
+  flex-flow: column wrap;
+  place-items: center;
+  width: 100%;
+  gap: 12px;
+}
+
+.elavon-button {
+  width: 100%;
+  max-width: 760px;
+  height: auto !important;
+  padding: 16px 20px !important;
+  font-size: 22px !important;
+  text-transform: none !important;
+  font-weight: bold !important;
 }
 
 .elavon-button-disabled {
   opacity: 0.5 !important;
+  cursor: default !important;
+}
+
+.elavon-powered-by {
+  display: flex;
+  gap: 4px;
+  place-items: baseline;
+  font-style: italic;
+  color: gray;
 }
