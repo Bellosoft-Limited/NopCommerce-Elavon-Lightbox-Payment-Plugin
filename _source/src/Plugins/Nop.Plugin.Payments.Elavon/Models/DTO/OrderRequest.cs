@@ -12,6 +12,8 @@ namespace Nop.Plugin.Payments.Elavon.Models.DTO;
 public record OrderRequest
 {
     [JsonProperty("total")] public OrderTotal Total { get; set; }
+
+    [JsonProperty("shopperEmailAddress")] public string ShopperEmailAddress { get; set; }
 }
 
 public record OrderTotal
