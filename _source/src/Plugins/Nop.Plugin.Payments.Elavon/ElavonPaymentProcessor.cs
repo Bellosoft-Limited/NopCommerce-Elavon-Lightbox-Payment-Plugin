@@ -2,6 +2,7 @@
 // Copyright (c) Bellosoft Limited. All rights reserved.
 // </copyright>
 
+using System.Globalization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.Tokens;
 using Nop.Core;
@@ -80,7 +81,17 @@ public class ElavonPaymentProcessor : BasePlugin, IPaymentMethod
             if (transaction != null && transaction.IsAuthorized)
             {
                 result.NewPaymentStatus = PaymentStatus.Authorized;
-            } 
+
+                //the same amount the payment session was created for; saved with the order's custom values, so the LogicCloud plugin sends Logic Cloud the deposit rather than the order total
+                var amountCharged = await _apiIntegrationService.GetAmountToChargeAsync(processPaymentRequest.OrderTotal);
+                processPaymentRequest.CustomValues[Globals.AmountChargedCustomValue] = amountCharged.ToString("0.00", CultureInfo.InvariantCulture);
+
+                //SyncOrdersWithApiTask finds the payment by its transaction ID; saved here rather than in an IOrderProcessingService
+                //override, which another plugin's override (e.g. LogicCloud's) can replace
+                var transactionIdKey = await _localizationService.GetResourceAsync("Plugins.Payments.Elavon.Order.TransactionId");
+                processPaymentRequest.CustomValues[transactionIdKey] = transaction.Id;
+                processPaymentRequest.CustomValues.Remove(Globals.PaymentSessionId);
+            }
             else
             {
                 result.AddError(await _localizationService.GetResourceAsync("Plugins.Payments.Elavon.PaymentFailed"));

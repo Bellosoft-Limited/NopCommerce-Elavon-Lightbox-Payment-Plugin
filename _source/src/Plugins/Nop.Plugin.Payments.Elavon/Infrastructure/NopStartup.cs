@@ -10,7 +10,6 @@ using Nop.Plugin.Payments.Elavon.Business.Services;
 using Nop.Plugin.Payments.Elavon.Business.Services.Api;
 using Nop.Plugin.Payments.Elavon.Factories;
 using Nop.Plugin.Payments.Elavon.Tasks;
-using Nop.Services.Orders;
 
 namespace Nop.Plugin.Payments.Elavon.Infrastructure;
 
@@ -27,7 +26,6 @@ public class NopStartup : INopStartup
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IApiIntegrationService, ApiIntegrationService>();
-        services.AddScoped<IOrderProcessingService, CustomOrderProcessingService>();
         services.AddScoped<PaymentElavonModelFactory>();
         services.AddScoped<PaymentElavonServiceManager>();
         services.AddScoped<SyncOrdersWithApiTask>();
