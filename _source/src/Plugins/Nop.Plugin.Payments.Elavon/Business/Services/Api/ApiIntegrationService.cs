@@ -9,6 +9,7 @@ using Nop.Core;
 using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Orders;
 using Nop.Plugin.Payments.Elavon.Models.DTO;
+using Nop.Services.Common;
 using Nop.Services.Directory;
 using Nop.Services.Orders;
 
@@ -22,6 +23,7 @@ public class ApiIntegrationService : IApiIntegrationService
     private readonly ICurrencyService _currencyService;
     private readonly IShoppingCartService _shoppingCartService;
     private readonly IOrderTotalCalculationService _orderTotalCalculationService;
+    private readonly IGenericAttributeService _genericAttributeService;
     private readonly CurrencySettings _currencySettings;
     private readonly ElavonPaymentSettings _elavonPaymentSettings;
     private readonly HttpClient _httpClient;
@@ -34,6 +36,7 @@ public class ApiIntegrationService : IApiIntegrationService
         ICurrencyService currencyService,
         IShoppingCartService shoppingCartService,
         IOrderTotalCalculationService orderTotalCalculationService,
+        IGenericAttributeService genericAttributeService,
         CurrencySettings currencySettings,
         ElavonPaymentSettings elavonPaymentSettings, 
         HttpClient httpClient,
@@ -45,6 +48,7 @@ public class ApiIntegrationService : IApiIntegrationService
         _currencyService = currencyService;
         _shoppingCartService = shoppingCartService;
         _orderTotalCalculationService = orderTotalCalculationService;
+        _genericAttributeService = genericAttributeService;
         _currencySettings = currencySettings;
         _elavonPaymentSettings = elavonPaymentSettings;
         _httpClient = httpClient;
@@ -103,6 +107,18 @@ public class ApiIntegrationService : IApiIntegrationService
         return await GetAsync<TransactionResponse>(paymentSession.TransactionHref);
     }
 
+    /// <summary>
+    /// Never charges more than the order total: a saved amount that is not part of it is ignored and the total is charged
+    /// </summary>
+    public async Task<decimal> GetAmountToChargeAsync(decimal orderTotal)
+    {
+        var customer = await _workContext.GetCurrentCustomerAsync();
+        var store = await _storeContext.GetCurrentStoreAsync();
+        var amountToCharge = await _genericAttributeService.GetAttributeAsync<decimal?>(customer, Globals.AmountToChargeAttribute, store.Id);
+
+        return amountToCharge > 0 && amountToCharge < orderTotal ? amountToCharge.Value : orderTotal;
+    }
+
     #region Private Methods
 
     private async Task<OrderResponse> CreateElavonOrderAsync()
@@ -119,7 +135,7 @@ public class ApiIntegrationService : IApiIntegrationService
         {
             Total = new OrderTotal
             {
-                Amount = cartTotal,
+                Amount = await GetAmountToChargeAsync(cartTotal),
                 CurrencyCode = currency.CurrencyCode
             },
             ShopperEmailAddress = customer.Email
