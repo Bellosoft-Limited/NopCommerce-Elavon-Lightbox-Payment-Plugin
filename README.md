@@ -105,6 +105,7 @@ Once installed and configured, the plugin becomes available during checkout.
 * During checkout, if multiple payment methods are available, customers can select **Elavon**. 
   * If it's the only available payment method, they are automatically directed to the next step.
 * The customer is taken to an order summary page showing their cart details and a payment button.
+  * On stores with the Logic Cloud plugin, the page also shows its order note box above the button, and the note is saved before the lightbox opens.
 * When the customer clicks to pay, the Elavon lightbox modal opens.
 * The customer completes the payment securely within the Elavon-hosted modal.
 

@@ -93,13 +93,21 @@
 
         submitButton.addEventListener("click", runElavonLightbox);
 
-        function runElavonLightbox() {
+        async function runElavonLightbox() {
             if (waitingElavon) {
                 return;
             }
 
             submitButton.disabled = true;
             submitButton.classList.add("elavon-button-disabled");
+
+            //the Logic Cloud plugin's order note box, when the page has it (PluginPaymentInfo.cshtml): the lightbox places the
+            //order once the payment is taken, so the note is saved first
+            if (window.CustomerNote && !(await window.CustomerNote.save())) {
+                submitButton.disabled = false;
+                submitButton.classList.remove("elavon-button-disabled");
+                return;
+            }
 
             const MessageTypes = window.ElavonLightbox.MessageTypes;
 

@@ -2,7 +2,7 @@
   "Group": "Payment methods",
   "FriendlyName": "Elavon",
   "SystemName": "Payments.Elavon",
-  "Version": "4.80.17",
+  "Version": "4.80.18",
   "SupportedVersions": [
     "4.80"
   ],
