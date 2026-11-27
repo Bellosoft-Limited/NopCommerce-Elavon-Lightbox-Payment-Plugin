@@ -1,9 +1,14 @@
 ﻿@model Nop.Web.Models.Checkout.CheckoutPaymentInfoModel
+@inject Microsoft.AspNetCore.Mvc.ViewComponents.IViewComponentSelector viewComponentSelector
 
 @{
     Layout = "~/Views/Shared/_ColumnsOne.cshtml";
 
     NopHtml.AddTitleParts(T("PageTitle.Checkout").Text);
+
+    //the Logic Cloud plugin's order note box, on stores that have it: this page places the order, so the one-page checkout's
+    //Confirm step, where the box usually is, never shows; _Button.cshtml saves the note before the lightbox opens
+    const string ORDER_NOTE_COMPONENT = "LogicCloudCustomerNote";
 }
 
 <div class="page checkout-page payment-info-page">
@@ -13,6 +18,10 @@
             <div class="payment-info-page__form">
                 <h1 class="payment-info-page__title">@T("Checkout.PaymentInfo")</h1>
                 <div class="info">
+                    @if (viewComponentSelector.SelectComponent(ORDER_NOTE_COMPONENT) is not null)
+                    {
+                        @await Component.InvokeAsync(ORDER_NOTE_COMPONENT)
+                    }
                     @await Component.InvokeAsync(typeof(ButtonViewComponent))
                 </div>
                 <div class="buttons">
